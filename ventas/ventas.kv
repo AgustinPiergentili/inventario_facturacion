@@ -12,7 +12,6 @@
 			size: self.size
 			pos: self.pos
 
-
 <LabelOscuro@Label>:
 	canvas.before:
 		Color:
@@ -20,6 +19,47 @@
 		Rectangle:
 			size: self.size
 			pos: self.pos
+
+<SelectableBoxLayout>:
+    # Draw a background to indicate selection
+    canvas.before:
+        Color:
+            rgba: hex('#C9F3EF') if self.selected else hex('#F0F0F0')
+        Rectangle:
+            pos: self.pos
+            size: self.size
+	Label:
+		id: _cod
+		size_hint_x: .1
+		color: (0,0,0,1)
+	Label:
+		id: _articulo
+		size_hint_x: .5
+		color: (0,0,0,1)
+	Label:
+		id: _cantidad
+		size_hint_x: .1
+		color: (0,0,0,1)
+	Label:
+		id: _precio_por_articulo
+		size_hint_x: .15
+		color: (0,0,0,1)
+	Label:
+		id: _precio
+		size_hint_x: .15
+		color: (0,0,0,1)
+
+
+<RV>:
+    viewclass: 'SelectableBoxLayout'
+    SelectableRecycleBoxLayout:
+        default_size: None, dp(36)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        orientation: 'vertical'
+        multiselect: False
+        touch_multiselect: False
 
 
 <VentasWindow>:
@@ -118,7 +158,8 @@
 					LabelOscuro:
 						text: 'Precio'
 						size_hint_x: .15
-				BoxLayout:
+				RV:
+					id: rvs
 			BoxLayout:
 				size_hint_y: .1
 				spacing: .5
