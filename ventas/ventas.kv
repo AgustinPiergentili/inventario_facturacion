@@ -4,6 +4,15 @@
 	background_normal: ''
 	background_color: hex('#393939')
 
+<LabelClaro@Label>:
+	canvas.before:
+		Color:
+			rgba: hex('#FFFFFF')
+		Rectangle:
+			size: self.size
+			pos: self.pos
+
+
 <LabelOscuro@Label>:
 	canvas.before:
 		Color:
@@ -25,9 +34,9 @@
 		size_hint_y: .1
 		spacing: .5
 		Label:
-			id: bienvenido_label
+			id: cliente_label
 			size_hint_x: .25
-			text: 'Bienvenido: '
+			text: 'Cliente: '
 			color: hex('#000000')
 		GridLayout:
 			size_hint_x: .25
@@ -53,10 +62,10 @@
 			text: 'Admin'
 			on_release: root.admin()
 		BotonOscuro: 
-			id: signout_boton
+			id: salir_boton
 			size_hint_x: .15
-			text: 'Signout'
-			on_release: root.signout()
+			text: 'Salir'
+			on_release: root.salir()
 	BoxLayout:
 		canvas.before:
 			Color:
@@ -160,13 +169,13 @@
 					size_hint_y: .25
 				BotonOscuro:
 					size_hint_y: .25
-					id: pagar
-					text: 'Pagar'
-					on_release: root.pagar()
+					id: cargar_pedido
+					text: 'Cargar Pedido'
+					on_release: root.cargar_pedido()
 				BotonOscuro:
 					size_hint_y: .25
-					id: nueva_compra
-					text: 'Nueva Compra'
-					on_release: root.nueva_compra()
+					id: nuevo_pedido
+					text: 'Nuevo Pedido'
+					on_release: root.nuevo_pedido()
 	BoxLayout:
 		size_hint_y: .03

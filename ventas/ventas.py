@@ -1,10 +1,18 @@
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 
+inventario=[
+	{'codigo': '1', 'nombre': 'Higienol Fresh', 'precio': 900, 'cantidad': 120},
+	{'codigo': '1', 'nombre': 'Higienol Fresh', 'precio': 900, 'cantidad': 120},
+	{'codigo': '1', 'nombre': 'Higienol Fresh', 'precio': 900, 'cantidad': 120},
+	{'codigo': '1', 'nombre': 'Higienol Fresh', 'precio': 900, 'cantidad': 120},
+
+]
+
 
 class VentasWindow(BoxLayout):
 	def __init__(self, **kwargs):
-		super().__init__(**kwargs)
+		super().__init__(**kwargs) 
 
 	def agregar_producto_codigo(self, codigo):
 		print("Se mando", codigo)
@@ -18,17 +26,17 @@ class VentasWindow(BoxLayout):
 	def modificar_producto(self):
 		print("eliminar_producto presionado")
 
-	def pagar(self):
-		print("pagar")
+	def cargar_pedido(self):
+		print("cargar_pedido")
 
-	def nueva_compra(self):
-		print("nueva_compra")
+	def nuevo_pedido(self):
+		print("nuevo_pedido")
 
 	def admin(self):
 		print("Admin presionado")
 
-	def signout(self):
-		print("Signout presionado")
+	def salir(self):
+		print("Salir presionado")
 
 class VentasApp(App):
 	def build(self):
