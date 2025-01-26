@@ -27,13 +27,13 @@ class SelectableBoxLayout(RecycleDataViewBehavior, BoxLayout):
     selectable = BooleanProperty(True)
 
     def refresh_view_attrs(self, rv, index, data):
-    	self.index = index
-    	self.ids['_cod'].text = str(1+index)
-    	self.ids['_articulo'].text = data['nombre'].capitalize()
-    	self.ids['_cantidad'].text = str(data['cantidad_carrito'])
-    	self.ids['_precio_por_articulo'].text = str("{:.2f}".format(data['precio']))
-    	self.ids['_precio'].text = str("{:.2f}".format(data['precio_total']))
-    	return super(SelectableBoxLayout, self).refresh_view_attrs(rv, index, data)
+        self.index = index
+        self.ids['_cod'].text = str(1 + index)
+        self.ids['_articulo'].text = data['nombre'].title()
+        self.ids['_cantidad'].text = str(data['cantidad_carrito'])
+        self.ids['_precio_por_articulo'].text = str("{:.2f}".format(data['precio']))
+        self.ids['_precio'].text = str("{:.2f}".format(data['precio_total']))
+        return super(SelectableBoxLayout, self).refresh_view_attrs(rv, index, data)
 
     def on_touch_down(self, touch):
         ''' Add selection on touch down '''
@@ -45,10 +45,12 @@ class SelectableBoxLayout(RecycleDataViewBehavior, BoxLayout):
     def apply_selection(self, rv, index, is_selected):
         ''' Respond to the selection of items in the view. '''
         self.selected = is_selected
+        rv.data[index]['seleccionado'] = is_selected
         if is_selected:
             print("selection changed to {0}".format(rv.data[index]))
         else:
             print("selection removed for {0}".format(rv.data[index]))
+
 
 
 class RV(RecycleView):
@@ -104,7 +106,17 @@ class VentasWindow(BoxLayout):
                 articulo['cantidad_inventario'] = producto['cantidad']
                 self.ids.rvs.agregar_articulo(articulo, cantidad)
                 break
+            
+    def eliminar_producto(self):
+        # Obtener los artículos seleccionados
+        seleccionados = [index for index, item in enumerate(self.ids.rvs.data) if item.get('seleccionado', False)]
+        
+        # Remover artículos seleccionados en orden inverso para evitar problemas de índice
+        for index in sorted(seleccionados, reverse=True):
+            del self.ids.rvs.data[index]
 
+        # Refrescar la vista del RecycleView
+        self.ids.rvs.refresh_from_data()
 
 
 class VentasApp(App):
