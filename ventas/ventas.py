@@ -16,17 +16,18 @@ inventario=[
 
 
 class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
-	''' Adds selection and focus behavior to the view. '''
+	''' Agrega comportamiento de selección y enfoque a la vista.'''
 	touch_deselect_last = BooleanProperty(True)
 
 
 class SelectableBoxLayout(RecycleDataViewBehavior, BoxLayout):
-    ''' Add selection support to the Label '''
+    ''' Agrega soporte de selección a la etiqueta.'''
     index = None
     selected = BooleanProperty(False)
     selectable = BooleanProperty(True)
 
     def refresh_view_attrs(self, rv, index, data):
+        '''Refresca la vista.'''
         self.index = index
         self.ids['_cod'].text = str(1 + index)
         self.ids['_articulo'].text = data['nombre'].title()
@@ -36,14 +37,14 @@ class SelectableBoxLayout(RecycleDataViewBehavior, BoxLayout):
         return super(SelectableBoxLayout, self).refresh_view_attrs(rv, index, data)
 
     def on_touch_down(self, touch):
-        ''' Add selection on touch down '''
+        ''' Agrega selección al tocar. '''
         if super(SelectableBoxLayout, self).on_touch_down(touch):
             return True
         if self.collide_point(*touch.pos) and self.selectable:
             return self.parent.select_with_touch(self.index, touch)
 
     def apply_selection(self, rv, index, is_selected):
-        ''' Respond to the selection of items in the view. '''
+        ''' Responde a la selección de elementos en la vista. '''
         self.selected = is_selected
         rv.data[index]['seleccionado'] = is_selected
         if is_selected:
@@ -59,6 +60,7 @@ class RV(RecycleView):
         self.data = []
 
     def agregar_articulo(self, articulo, cantidad=1):
+        '''Funcion para agregar articulos.'''
         articulo['seleccionado'] = False
         indice = -1
         if self.data:
@@ -86,6 +88,7 @@ class VentasWindow(BoxLayout):
         super().__init__(**kwargs)
 
     def agregar_producto_codigo(self, codigo, cantidad=1):
+        '''Funcion para agregar articulos por codigo.'''
         for producto in inventario:
             if codigo == producto['codigo']:
                 articulo = {}
@@ -97,6 +100,7 @@ class VentasWindow(BoxLayout):
                 break
 
     def agregar_producto_nombre(self, nombre, cantidad=1):
+        '''Funcion para agregar productos por nombre.'''
         for producto in inventario:
             if nombre.lower() == producto['nombre'].lower():
                 articulo = {}
@@ -106,16 +110,35 @@ class VentasWindow(BoxLayout):
                 articulo['cantidad_inventario'] = producto['cantidad']
                 self.ids.rvs.agregar_articulo(articulo, cantidad)
                 break
-            
-    def eliminar_producto(self):
-        # Obtener los artículos seleccionados
+
+    def modificar_producto(self):
+        '''Modificar cantidad de articulos cargados en la vista.'''
+        nueva_cantidad = self.ids.buscar_cantidad.text
+        
+        try:
+            nueva_cantidad = int(nueva_cantidad)
+            if nueva_cantidad < 1:
+                raise ValueError("La cantidad debe ser mayor o igual a 1.")
+        except ValueError as e:
+            print(f"Error: {e}")
+            return
+        
         seleccionados = [index for index, item in enumerate(self.ids.rvs.data) if item.get('seleccionado', False)]
         
-        # Remover artículos seleccionados en orden inverso para evitar problemas de índice
+        if seleccionados:
+            index = seleccionados[0] 
+            self.ids.rvs.data[index]['cantidad_carrito'] = nueva_cantidad
+            self.ids.rvs.data[index]['precio_total'] = self.ids.rvs.data[index]['precio'] * nueva_cantidad
+            self.ids.rvs.refresh_from_data()
+        else:
+            print("Ningún artículo seleccionado.")
+            
+    def eliminar_producto(self):
+        '''Eliminar productos cargados en la lista.'''
+        seleccionados = [index for index, item in enumerate(self.ids.rvs.data) if item.get('seleccionado', False)]
+        
         for index in sorted(seleccionados, reverse=True):
             del self.ids.rvs.data[index]
-
-        # Refrescar la vista del RecycleView
         self.ids.rvs.refresh_from_data()
 
 
