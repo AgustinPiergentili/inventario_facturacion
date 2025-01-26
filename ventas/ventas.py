@@ -2,7 +2,6 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
-from kivy.uix.label import Label
 from kivy.properties import BooleanProperty
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.behaviors import FocusBehavior
@@ -28,11 +27,13 @@ class SelectableBoxLayout(RecycleDataViewBehavior, BoxLayout):
     selectable = BooleanProperty(True)
 
     def refresh_view_attrs(self, rv, index, data):
-        self.index = index
-        self.ids['_cod'].text = str(1 + index)
-        return super(SelectableBoxLayout, self).refresh_view_attrs(
-            rv, index, data
-        )
+    	self.index = index
+    	self.ids['_cod'].text = str(1+index)
+    	self.ids['_articulo'].text = data['nombre'].capitalize()
+    	self.ids['_cantidad'].text = str(data['cantidad_carrito'])
+    	self.ids['_precio_por_articulo'].text = str("{:.2f}".format(data['precio']))
+    	self.ids['_precio'].text = str("{:.2f}".format(data['precio_total']))
+    	return super(SelectableBoxLayout, self).refresh_view_attrs(rv, index, data)
 
     def on_touch_down(self, touch):
         ''' Add selection on touch down '''
@@ -50,50 +51,61 @@ class SelectableBoxLayout(RecycleDataViewBehavior, BoxLayout):
             print("selection removed for {0}".format(rv.data[index]))
 
 
-
 class RV(RecycleView):
     def __init__(self, **kwargs):
         super(RV, self).__init__(**kwargs)
         self.data = []
 
+    def agregar_articulo(self, articulo, cantidad=1):
+        articulo['seleccionado'] = False
+        indice = -1
+        if self.data:
+            for i in range(len(self.data)):
+                if articulo['codigo'] == self.data[i]['codigo']:
+                    indice = i
+            if indice >= 0:
+                self.data[indice]['cantidad_carrito'] += cantidad
+                self.data[indice]['precio_total'] = self.data[indice]['precio'] * self.data[indice]['cantidad_carrito']
+                self.refresh_from_data()
+            else:
+                articulo['cantidad_carrito'] = cantidad
+                articulo['precio_total'] = articulo['precio'] * cantidad
+                self.data.append(articulo)
+        else:
+            articulo['cantidad_carrito'] = cantidad
+            articulo['precio_total'] = articulo['precio'] * cantidad
+            self.data.append(articulo)
+        self.refresh_from_data()
+
+
 
 class VentasWindow(BoxLayout):
-	def __init__(self, **kwargs):
-		super().__init__(**kwargs) 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-	def agregar_producto_codigo(self, codigo):
-		for producto in inventario:
-			if codigo==producto['codigo']:
-				articulo = {}
-				articulo['codigo']=producto['codigo']
-				articulo['nombre']=producto['nombre']
-				articulo['precio']=producto['precio']
-				articulo['cantidad_carrito']=1
-				articulo['cantidad_inventario']=producto['cantidad']
-				articulo['precio_total']=producto['precio']
-				self.ids.rvs.data.append(articulo)
-				break
+    def agregar_producto_codigo(self, codigo, cantidad=1):
+        for producto in inventario:
+            if codigo == producto['codigo']:
+                articulo = {}
+                articulo['codigo'] = producto['codigo']
+                articulo['nombre'] = producto['nombre']
+                articulo['precio'] = producto['precio']
+                articulo['cantidad_inventario'] = producto['cantidad']
+                self.ids.rvs.agregar_articulo(articulo, cantidad)
+                break
 
-	def agregar_producto_nombre(self, nombre):
-		print("Se mando", nombre)
+    def agregar_producto_nombre(self, nombre, cantidad=1):
+        for producto in inventario:
+            if nombre.lower() == producto['nombre'].lower():
+                articulo = {}
+                articulo['codigo'] = producto['codigo']
+                articulo['nombre'] = producto['nombre']
+                articulo['precio'] = producto['precio']
+                articulo['cantidad_inventario'] = producto['cantidad']
+                self.ids.rvs.agregar_articulo(articulo, cantidad)
+                break
 
-	def eliminar_producto(self):
-		print("eliminar_producto presionado")
 
-	def modificar_producto(self):
-		print("eliminar_producto presionado")
-
-	def cargar_pedido(self):
-		print("cargar_pedido")
-
-	def nuevo_pedido(self):
-		print("nuevo_pedido")
-
-	def admin(self):
-		print("Admin presionado")
-
-	def salir(self):
-		print("Salir presionado")
 
 class VentasApp(App):
 	def build(self):
