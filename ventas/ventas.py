@@ -91,25 +91,15 @@ class RV(RecycleView):
         super(RV, self).__init__(**kwargs)
         self.data = []
 
-    def agregar_articulo(self, articulo, cantidad=1):
-        '''Funcion para agregar articulos.'''
-        articulo['seleccionado'] = False
-        indice = -1
-        if self.data:
-            for i in range(len(self.data)):
-                if articulo['codigo'] == self.data[i]['codigo']:
-                    indice = i
-            if indice >= 0:
-                self.data[indice]['cantidad_carrito'] += cantidad
-                self.data[indice]['precio_total'] = self.data[indice]['precio'] * self.data[indice]['cantidad_carrito']
-                self.refresh_from_data()
-            else:
-                articulo['cantidad_carrito'] = cantidad
-                articulo['precio_total'] = articulo['precio'] * cantidad
-                self.data.append(articulo)
-        else:
-            articulo['cantidad_carrito'] = cantidad
-            articulo['precio_total'] = articulo['precio'] * cantidad
+    def agregar_articulo(self, articulo):
+        encontrado = False
+        for i, item in enumerate(self.data):
+            if item['codigo'] == articulo['codigo']:
+                self.data[i]['cantidad_carrito'] += articulo['cantidad_carrito']
+                self.data[i]['precio_total'] = self.data[i]['precio'] * self.data[i]['cantidad_carrito']
+                encontrado = True
+                break
+        if not encontrado:
             self.data.append(articulo)
         self.refresh_from_data()
 
@@ -120,16 +110,16 @@ class RV(RecycleView):
                 indice = i
                 break
         return indice
-
-
+    
 
 class ProductoPorNombrePopup(Popup):
-    def __init__(self, input_nombre, agregar_producto_callback, **kwargs):
+    def __init__(self, nombre, agregar_producto_callback, cantidad=1, **kwargs):
         super(ProductoPorNombrePopup, self).__init__(**kwargs)
-        self.input_nombre = input_nombre
+        self.input_nombre = nombre
         self.agregar_producto = agregar_producto_callback
+        self.cantidad = cantidad
 
-    def mostrar_articulos(self, cantidad=1):
+    def mostrar_articulos(self):
         self.open()
         for nombre in inventario:
             if nombre['nombre'].lower().find(self.input_nombre) >= 0:
@@ -137,7 +127,7 @@ class ProductoPorNombrePopup(Popup):
                     'codigo': nombre['codigo'], 
                     'nombre': nombre['nombre'], 
                     'precio': nombre['precio'], 
-                    'cantidad': cantidad  # Aquí usamos la cantidad proporcionada
+                    'cantidad': self.cantidad  # Usamos la cantidad proporcionada
                 }
                 self.ids.rvs.agregar_articulo(producto)
 
@@ -145,13 +135,14 @@ class ProductoPorNombrePopup(Popup):
         indice = self.ids.rvs.articulo_seleccionado()
         if indice >= 0:
             _articulo = self.ids.rvs.data[indice]
-            articulo = {}
-            articulo['codigo'] = _articulo['codigo']
-            articulo['nombre'] = _articulo['nombre']
-            articulo['precio'] = _articulo['precio']
-            articulo['cantidad_carrito'] = 1
-            articulo['cantidad_inventario'] = _articulo['cantidad']
-            articulo['precio_total'] = _articulo['precio']
+            articulo = {
+                'codigo': _articulo['codigo'],
+                'nombre': _articulo['nombre'],
+                'precio': _articulo['precio'],
+                'cantidad_carrito': self.cantidad,  # Usamos la cantidad proporcionada
+                'cantidad_inventario': _articulo['cantidad'],
+                'precio_total': _articulo['precio'] * self.cantidad  # Calculamos el precio total con la cantidad
+            }
             if callable(self.agregar_producto):
                 self.agregar_producto(articulo)
             self.dismiss()
@@ -176,18 +167,16 @@ class VentasWindow(BoxLayout):
                 self.ids.buscar_codigo.text = ''
                 break
 
-
-
     def agregar_producto_nombre(self, nombre, cantidad=1):
         self.ids.buscar_nombre.text = ''
-        popup = ProductoPorNombrePopup(nombre, self.agregar_producto)
-        popup.mostrar_articulos(cantidad)
+        popup = ProductoPorNombrePopup(nombre, self.agregar_producto, cantidad)
+        popup.mostrar_articulos()
+
 
     def agregar_producto(self, articulo):
-        self.total += articulo['precio']
+        self.total += articulo['precio_total']
         self.ids.sub_total.text = '$ ' + "{:.2f}".format(self.total)
         self.ids.rvs.agregar_articulo(articulo)
-
 
     def modificar_producto(self):
         '''Modificar cantidad de articulos cargados en la vista.'''
