@@ -7,14 +7,8 @@ from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.uix.popup import Popup
+from db import Database
 
-
-inventario=[
-	{'codigo': '1', 'nombre': 'Higienol Fresh', 'precio': 900, 'cantidad': 120},
-	{'codigo': '2', 'nombre': 'Quilmes', 'precio': 1760, 'cantidad': 80},
-	{'codigo': '3', 'nombre': 'Brahma', 'precio': 1150, 'cantidad': 240},
-	{'codigo': '4', 'nombre': 'Pepsi', 'precio': 1450, 'cantidad': 80},
-]
 
 
 class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
@@ -56,34 +50,30 @@ class SelectableBoxLayout(RecycleDataViewBehavior, BoxLayout):
 
 
 class SelectableBoxLayoutPopup(RecycleDataViewBehavior, BoxLayout):
-    ''' Add selection support to the Label '''
     index = None
     selected = BooleanProperty(False)
     selectable = BooleanProperty(True)
 
     def refresh_view_attrs(self, rv, index, data):
         self.index = index
-        self.ids['_codigo'].text = data['codigo']
-        self.ids['_articulo'].text = data['nombre'].capitalize()
+        self.ids['_codigo'].text = str(data['codigo'])  # Asegurarse de que sea una cadena
+        self.ids['_articulo'].text = str(data['nombre']).capitalize()
         self.ids['_cantidad'].text = str(data['cantidad'])
         self.ids['_precio'].text = str("{:.2f}".format(data['precio']))
         return super(SelectableBoxLayoutPopup, self).refresh_view_attrs(rv, index, data)
 
     def on_touch_down(self, touch):
-        ''' Add selection on touch down '''
         if super(SelectableBoxLayoutPopup, self).on_touch_down(touch):
             return True
         if self.collide_point(*touch.pos) and self.selectable:
             return self.parent.select_with_touch(self.index, touch)
 
     def apply_selection(self, rv, index, is_selected):
-        ''' Respond to the selection of items in the view. '''
         self.selected = is_selected
         if is_selected:
             rv.data[index]['seleccionado'] = True
         else:
             rv.data[index]['seleccionado'] = False
-
 
 
 class RV(RecycleView):
@@ -120,16 +110,21 @@ class ProductoPorNombrePopup(Popup):
         self.cantidad = cantidad
 
     def mostrar_articulos(self):
+        db = Database()
+        db.conectar()
+        db.ejecutar_consulta('SELECT id, nombre, precio, cantidad FROM producto WHERE nombre LIKE %s', (f'%{self.input_nombre}%',))
+        productos = db.obtener_resultados()
+        db.desconectar()
+
         self.open()
-        for nombre in inventario:
-            if nombre['nombre'].lower().find(self.input_nombre) >= 0:
-                producto = {
-                    'codigo': nombre['codigo'], 
-                    'nombre': nombre['nombre'], 
-                    'precio': nombre['precio'], 
-                    'cantidad': self.cantidad  # Usamos la cantidad proporcionada
-                }
-                self.ids.rvs.agregar_articulo(producto)
+        for producto in productos:
+            articulo = {
+                'codigo': producto[0],
+                'nombre': producto[1],
+                'precio': producto[2],
+                'cantidad': producto[3]
+            }
+            self.ids.rvs.agregar_articulo(articulo)
 
     def seleccionar_articulo(self):
         indice = self.ids.rvs.articulo_seleccionado()
@@ -154,24 +149,29 @@ class VentasWindow(BoxLayout):
         self.total = 0
 
     def agregar_producto_codigo(self, codigo, cantidad=1):
-        for producto in inventario:
-            if codigo == producto['codigo']:
-                articulo = {}
-                articulo['codigo'] = producto['codigo']
-                articulo['nombre'] = producto['nombre']
-                articulo['precio'] = producto['precio']
-                articulo['cantidad_carrito'] = cantidad
-                articulo['cantidad_inventario'] = producto['cantidad']
-                articulo['precio_total'] = producto['precio'] * cantidad
-                self.agregar_producto(articulo)
-                self.ids.buscar_codigo.text = ''
-                break
+        db = Database()
+        db.conectar()
+        db.ejecutar_consulta('SELECT id, nombre, precio, cantidad FROM producto WHERE id = %s', (codigo,))
+        resultado = db.obtener_resultados()
+        db.desconectar()
+
+        if resultado:
+            producto = resultado[0]  # (id, nombre, precio, cantidad)
+            articulo = {
+                'codigo': producto[0],
+                'nombre': producto[1],
+                'precio': producto[2],
+                'cantidad_carrito': cantidad,
+                'cantidad_inventario': producto[3],
+                'precio_total': producto[2] * cantidad
+            }
+            self.agregar_producto(articulo)
+            self.ids.buscar_codigo.text = ''
 
     def agregar_producto_nombre(self, nombre, cantidad=1):
         self.ids.buscar_nombre.text = ''
         popup = ProductoPorNombrePopup(nombre, self.agregar_producto, cantidad)
         popup.mostrar_articulos()
-
 
     def agregar_producto(self, articulo):
         self.total += articulo['precio_total']
