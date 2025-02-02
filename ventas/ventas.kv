@@ -112,7 +112,7 @@
 				on_release: root.seleccionar_articulo()
 			Button:
 				text: 'Salir'
-				on_release: root.dismiss()
+				on_release: root.signin()
 
 <VentasWindow>:
     canvas.before:
@@ -149,14 +149,15 @@
         Label: 
             size_hint_x: .2
         BotonOscuro:
-            id: admin_boton
+            id: inventario_boton
             size_hint_x: .15
-            text: 'Admin'
-            on_release: root.admin()
+            text: 'Inventario'
+            on_release: root.inventario()
         BotonOscuro: 
             id: salir_boton
             size_hint_x: .15
             text: 'Salir'
+            on_release: root.salir()
     BoxLayout:
         canvas.before:
             Color:

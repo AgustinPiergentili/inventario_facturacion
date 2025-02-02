@@ -7,10 +7,16 @@ from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.uix.popup import Popup
-from sqlqueries import QueriesSQLite
+from kivy.clock import Clock
 from kivy.lang import Builder
+from datetime import datetime, timedelta
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from sqlqueries import QueriesSQLite
 
 Builder.load_file('ventas/ventas.kv')
+
 
 class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
 	''' Agrega comportamiento de selección y enfoque a la vista.'''
@@ -133,31 +139,29 @@ class ProductoPorNombrePopup(Popup):
 				self.agregar_producto(articulo)
 			self.dismiss()
 
-
 class VentasWindow(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.total = 0
+        self.total = 0.0
+        self.ids.rvs.modificar_producto = self.modificar_producto
+
 
     def agregar_producto_codigo(self, codigo, cantidad=1):
-        db = Database()
-        db.conectar()
-        db.ejecutar_consulta('SELECT id, nombre, precio, cantidad FROM producto WHERE id = %s', (codigo,))
-        resultado = db.obtener_resultados()
-        db.desconectar()
+        connection = QueriesSQLite.create_connection("pdvDB.sqlite")
+        inventario_sql = QueriesSQLite.execute_read_query(connection, "SELECT * from productos")
+        for producto in inventario_sql:
+            if codigo == producto[0]:
+                articulo = {}
+                articulo['codigo'] = producto[0]
+                articulo['nombre'] = producto[1]
+                articulo['precio'] = producto[2]
+                articulo['cantidad_carrito'] = cantidad  # Usar cantidad aquí
+                articulo['cantidad_inventario'] = producto[3]
+                articulo['precio_total'] = producto[2] * cantidad  # Actualizar precio total según cantidad
+                self.agregar_producto(articulo)
+                self.ids.buscar_codigo.text = ''
+                break
 
-        if resultado:
-            producto = resultado[0]  # (id, nombre, precio, cantidad)
-            articulo = {
-                'codigo': producto[0],
-                'nombre': producto[1],
-                'precio': producto[2],
-                'cantidad_carrito': cantidad,
-                'cantidad_inventario': producto[3],
-                'precio_total': producto[2] * cantidad
-            }
-            self.agregar_producto(articulo)
-            self.ids.buscar_codigo.text = ''
 
     def agregar_producto_nombre(self, nombre, cantidad=1):
         self.ids.buscar_nombre.text = ''
@@ -190,14 +194,20 @@ class VentasWindow(BoxLayout):
             self.ids.rvs.refresh_from_data()
         else:
             print("Ningún artículo seleccionado.")
-            
+
     def eliminar_producto(self):
         '''Eliminar productos cargados en la lista.'''
         seleccionados = [index for index, item in enumerate(self.ids.rvs.data) if item.get('seleccionado', False)]
-        
+
         for index in sorted(seleccionados, reverse=True):
             del self.ids.rvs.data[index]
         self.ids.rvs.refresh_from_data()
+
+    def inventario(self):
+        self.parent.parent.current = 'scrn_inventario'
+
+    def salir(self):
+        self.parent.parent.current = 'scrn_signin' 
 
 
 class VentasApp(App):

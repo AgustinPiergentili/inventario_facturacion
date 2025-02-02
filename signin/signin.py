@@ -7,6 +7,12 @@ Builder.load_file('signin/signin.kv')
 class WindowSignin(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+    
+    def inventario(self):
+        self.parent.parent.current = 'scrn_inventario'
+        
+    def ventas(self):
+        self.parent.parent.current = 'scrn_ventas'
 
 class AppSignin(App):
     def build(self):
