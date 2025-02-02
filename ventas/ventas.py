@@ -7,9 +7,10 @@ from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.uix.popup import Popup
-from db import Database
+from sqlqueries import QueriesSQLite
+from kivy.lang import Builder
 
-
+Builder.load_file('ventas/ventas.kv')
 
 class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
 	''' Agrega comportamiento de selección y enfoque a la vista.'''
@@ -100,47 +101,37 @@ class RV(RecycleView):
                 indice = i
                 break
         return indice
-    
+
 
 class ProductoPorNombrePopup(Popup):
-    def __init__(self, nombre, agregar_producto_callback, cantidad=1, **kwargs):
-        super(ProductoPorNombrePopup, self).__init__(**kwargs)
-        self.input_nombre = nombre
-        self.agregar_producto = agregar_producto_callback
-        self.cantidad = cantidad
+	def __init__(self, input_nombre, agregar_producto_callback, **kwargs):
+		super(ProductoPorNombrePopup, self).__init__(**kwargs)
+		self.input_nombre=input_nombre
+		self.agregar_producto=agregar_producto_callback
 
-    def mostrar_articulos(self):
-        db = Database()
-        db.conectar()
-        db.ejecutar_consulta('SELECT id, nombre, precio, cantidad FROM producto WHERE nombre LIKE %s', (f'%{self.input_nombre}%',))
-        productos = db.obtener_resultados()
-        db.desconectar()
+	def mostrar_articulos(self):
+		connection = QueriesSQLite.create_connection("pdvDB.sqlite")
+		inventario_sql=QueriesSQLite.execute_read_query(connection, "SELECT * from productos")
+		self.open()
+		for nombre in inventario_sql:
+			if nombre[1].lower().find(self.input_nombre)>=0:
+				producto={'codigo': nombre[0], 'nombre': nombre[1], 'precio': nombre[2], 'cantidad': nombre[3]}
+				self.ids.rvs.agregar_articulo(producto)
 
-        self.open()
-        for producto in productos:
-            articulo = {
-                'codigo': producto[0],
-                'nombre': producto[1],
-                'precio': producto[2],
-                'cantidad': producto[3]
-            }
-            self.ids.rvs.agregar_articulo(articulo)
-
-    def seleccionar_articulo(self):
-        indice = self.ids.rvs.articulo_seleccionado()
-        if indice >= 0:
-            _articulo = self.ids.rvs.data[indice]
-            articulo = {
-                'codigo': _articulo['codigo'],
-                'nombre': _articulo['nombre'],
-                'precio': _articulo['precio'],
-                'cantidad_carrito': self.cantidad,  # Usamos la cantidad proporcionada
-                'cantidad_inventario': _articulo['cantidad'],
-                'precio_total': _articulo['precio'] * self.cantidad  # Calculamos el precio total con la cantidad
-            }
-            if callable(self.agregar_producto):
-                self.agregar_producto(articulo)
-            self.dismiss()
+	def seleccionar_articulo(self):
+		indice=self.ids.rvs.articulo_seleccionado()
+		if indice>=0:
+			_articulo=self.ids.rvs.data[indice]
+			articulo={}
+			articulo['codigo']=_articulo['codigo']
+			articulo['nombre']=_articulo['nombre']
+			articulo['precio']=_articulo['precio']
+			articulo['cantidad_carrito']=1
+			articulo['cantidad_inventario']=_articulo['cantidad']
+			articulo['precio_total']=_articulo['precio']
+			if callable(self.agregar_producto):
+				self.agregar_producto(articulo)
+			self.dismiss()
 
 
 class VentasWindow(BoxLayout):
